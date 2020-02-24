@@ -1,14 +1,14 @@
-N = 4;
+N = 3;
 nx = 6 * N;
 nu = 3 * N;
 
 mpc.N = N;
 mpc.nx = nx;
 mpc.nu = nu;
-mpc.duration = 40;
+mpc.duration = 5;
 mpc.controlHorizon = 4;
 mpc.predictionHorizon = 30;
-mpc.dt = 0.3;
+mpc.dt = 1;
 
 x_dr = [-1/sqrt(2), 1/sqrt(2), 1/sqrt(2), -1/sqrt(2);
     1/sqrt(2), 1/sqrt(2), -1/sqrt(2), -1/sqrt(2);
@@ -50,12 +50,13 @@ pause(0.4)
 end
 figure()
 plot(lst)
+%%
 mpc.nx = nx;
 mpc.nu = nu;
-mpc.duration = 40;
+mpc.duration = 5;
 mpc.controlHorizon = 4;
 mpc.predictionHorizon = 30;
-mpc.dt = 0.3;
+mpc.dt = 1;
 A = [1 mpc.dt;
     0 1];
 B = [mpc.dt^2/2;
@@ -74,3 +75,19 @@ mpc.Qn = kron(diag([50, 50, 50, 50, 50, 50]), eye(N ,N));
 mpc.x0 = zeros(6 * mpc.N, 1);
 mpc.u0 = zeros(3 * mpc.N, 1);
 
+
+con = zeros(mpc.nx*mpc.duration,size(B_kron,2));
+con(1:mpc.nx,:) = B_kron;
+for k=1:mpc.duration-1
+  con(k*mpc.nx+1:(k+1)*mpc.nx,:) = A_kron * con((k-1)*mpc.nx+1:k*mpc.nx,:);
+end
+conB = zeros(mpc.duration*mpc.nx,size(B_kron,2));
+for k=1:mpc.duration
+    conB((k-1)*mpc.nx+1:end,(k-1)*size(B_kron,2)+1:k*size(B_kron,2)) =  con(1:end-(k-1)*mpc.nx,:); 
+end
+
+conA = zeros(mpc.nx*mpc.duration,mpc.nx*mpc.duration);
+conA(1:mpc.nx,1:mpc.nx) = A_kron;
+for k=1:mpc.duration-1
+  conA(k*mpc.nx+1:(k+1)*mpc.nx,1:mpc.nx) = A_kron * conA((k-1)*mpc.nx+1:k*mpc.nx,1:mpc.nx);
+end
