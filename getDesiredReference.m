@@ -1,4 +1,4 @@
-function x_d = getDesiredReference(mpc, boolPlot)
+function [x_d, x_r, y_r] = getDesiredReference(mpc, boolPlot)
 
     x_dr = [-1/sqrt(2), 1/sqrt(2), 1/sqrt(2), -1/sqrt(2);
         1/sqrt(2), 1/sqrt(2), -1/sqrt(2), -1/sqrt(2);
