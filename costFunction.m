@@ -1,7 +1,9 @@
-function J = costFunction(x, u, xd, mpc.Q, mpc.P, mpc.Qn)
-% x \in R^(6N x p)
-% u \in R^(3N x p)
-cost = diag((x(1:end-1)-xd(1:end-1))'*mpc.Q*(x(1:end-1)-xd(1:end-1)) + u'*mpc.P*u);
-J = sum(cost(1:end-1)) + ...
-    (x(:,p+1) - xd(:,p+1))' * mpc.Qn * (x(:,p+1) - xd(:,p+1));
+function J = costFunction(z, mpc)
+[X, U] = getDecisions(z, mpc);
+X = X'; U = U';
+cost = sum(diag((X(:,1:end-1)-mpc.x_d(:,mpc.current:mpc.current + mpc.predictionHorizon-2))'*mpc.Q ...
+    *(X(:,1:end-1)-mpc.x_d(:,mpc.current:mpc.current + mpc.predictionHorizon-2)))) ...
+      + sum(diag(U'*mpc.P*U));
+J = cost + ...
+    (X(:,end) - mpc.x_d(:,mpc.current + mpc.predictionHorizon - 1))' * mpc.Qn * (X(:,end) - mpc.x_d(:,mpc.current + mpc.predictionHorizon - 1));
 end

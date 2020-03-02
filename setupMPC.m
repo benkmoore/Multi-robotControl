@@ -5,95 +5,66 @@ nu = 3 * N;
 mpc.N = N;
 mpc.nx = nx;
 mpc.nu = nu;
-mpc.duration = 5;
-mpc.controlHorizon = 4;
-mpc.predictionHorizon = 30;
-mpc.dt = 1;
+mpc.duration = 50;
+mpc.controlHorizon = 2;
+mpc.predictionHorizon = 5;
+mpc.dt = 0.01;
+mpc.totalDuration = mpc.duration * mpc.dt;
 
-x_dr = [-1/sqrt(2), 1/sqrt(2), 1/sqrt(2), -1/sqrt(2);
-    1/sqrt(2), 1/sqrt(2), -1/sqrt(2), -1/sqrt(2);
-    0, 0, 0 ,0];
-
-x_r = 0:8;
-y_r = [0 .15 1.12 2.36 2.36 1.46 .49 .06 0];
-cs = spline(x_r,[0 y_r 0]); 
-x_r = linspace(0, 8, mpc.duration);
-y_r = ppval(cs, x_r);
-y_prime = ppval(fnder(cs,1),x_r);
-prime = [ones(size(y_prime)); y_prime; zeros(size(y_prime))];
-x_d = zeros(mpc.nx, mpc.duration); lst = [];
-for t = 1:mpc.duration
-    if prime(1,t) == 0
-        psi = 0;
-    else
-        psi = atan2(prime(1,t),prime(2,t));
-    end
-    if prime(3,t) == 0
-        gamma = 0;
-    else
-        gamma = atan2(prime(3,t),prime(2,t));   
-    end
-    lst = [lst, gamma];
-    R = roty(rad2deg(-gamma)) * rotz(rad2deg(-psi));
-    x_d(:,t) = reshape([[x_r(t);y_r(t);0] + R * x_dr; repmat(prime(:,t),1,N)],6*N,1);
-end
-figure();
-for t = 1:mpc.duration
-plot(x_r(t), y_r(t),'-or','MarkerSize',5,'MarkerFaceColor','r')
-hold on;
-plot(x_d(1,t),x_d(2,t),'-or','MarkerSize',5,'MarkerFaceColor','k');
-plot(x_d(7,t),x_d(8,t),'or','MarkerSize',5,'MarkerFaceColor','b');
-plot(x_d(13,t),x_d(14,t),'or','MarkerSize',5,'MarkerFaceColor','g');
-plot(x_d(19,t),x_d(20,t),'or','MarkerSize',5,'MarkerFaceColor','y');
-pause(0.4)
-
-end
-figure()
-plot(lst)
-%%
-mpc.nx = nx;
-mpc.nu = nu;
-mpc.duration = 5;
-mpc.controlHorizon = 4;
-mpc.predictionHorizon = 30;
-mpc.dt = 1;
+[mpc.x_d, x_r, y_r] = getDesiredReference(mpc,0);
 A = [1 mpc.dt;
     0 1];
 B = [mpc.dt^2/2;
     mpc.dt];
+
 A_kron = kron(kron(A, eye(3, 3)), eye(N, N));
 B_kron = kron(kron(B, eye(3, 3)), eye(N, N));
 mpc.stateFct = @(x,u) A_kron * x + B_kron * u;
 mpc.costFct = @costFunction;
-mpc.xMin = [-Inf; -Inf; -Inf; -15; -15; -15];
-mpc.xMax = [Inf; Inf; Inf; 15; 15; 15];
-mpc.uMin = [-4; -4; 4];
+mpc.xMin = [-Inf; -Inf; -Inf; -15; -15; -15] * Inf;
+mpc.xMax = [Inf; Inf; Inf; 15; 15; 15] * Inf;
+mpc.uMin = [-4; -4; -4] * Inf;
 mpc.uMax = -mpc.uMin;
-mpc.Q = kron(diag([10, 10, 10, 5, 5, 5]), eye(N, N));
-mpc.P = kron(eye(3,3), eye(N, N));
-mpc.Qn = kron(diag([50, 50, 50, 50, 50, 50]), eye(N ,N));
+mpc.Q = kron(diag([10000, 10000, 10000, 5, 5, 5]), eye(N, N))*100;
+mpc.P = kron(eye(3,3), eye(N, N))*0.001;
+mpc.Qn = kron(diag([50, 50, 50, 50, 50, 50]), eye(N ,N))*100;
+mpc.x0 = mpc.x_d(:,1);%zeros(mpc.nx, 1);
+mpc.u0 = zeros(mpc.nu, 1);
+mpc.current = 1;
 
+mpc.boundX_ub = repmat([Inf,Inf,Inf,10,10,10]', mpc.N, 1);
+mpc.boundU_ub = repmat([5,5,5]', mpc.N, 1);
+mpc.boundX_lb = - mpc.boundX_ub;
+mpc.boundU_lb = - mpc.boundU_ub;
+[z2uMap, u2zMap] = mapControls(mpc);
+mpc.z2uMap = z2uMap; mpc.u2zMap = u2zMap;  
 
-mpc.x0 = zeros(6 * mpc.N, 1);
-mpc.u0 = zeros(3 * mpc.N, 1);
+[Aeq, Beq] = setEqConstraints(mpc, A_kron, B_kron);
+mpc.A = Aeq; mpc.B = Beq;
 
-
-
-
-
-
-con = zeros(mpc.nx*mpc.duration,size(B_kron,2));
-con(1:mpc.nx,:) = B_kron;
-for k=1:mpc.duration-1
-  con(k*mpc.nx+1:(k+1)*mpc.nx,:) = A_kron * con((k-1)*mpc.nx+1:k*mpc.nx,:);
+x = mpc.x0; u = mpc.u0;
+Xdef = []; Udef = [];
+for t = 1:mpc.duration - mpc.predictionHorizon
+    fprintf('%g \n',t)
+    z = mpcDecision(mpc, x, u);
+    [X, U] = getDecisions(z, mpc);
+    x = X(1,:)';
+    u = U(1,:)';
+    Xdef = [Xdef; x'];
+    Udef = [Udef; u'];
+    mpc.current = mpc.current + 1;
 end
-conB = zeros(mpc.duration*mpc.nx,size(B_kron,2));
-for k=1:mpc.duration
-    conB((k-1)*mpc.nx+1:end,(k-1)*size(B_kron,2)+1:k*size(B_kron,2)) =  con(1:end-(k-1)*mpc.nx,:); 
+
+
+
+figure();
+for t = 1:mpc.duration - mpc.predictionHorizon
+    plot(mpc.x_d(1,t), mpc.x_d(2,t),'-or','MarkerSize',5,'MarkerFaceColor','r')
+    hold on;
+    plot(Xdef(t,1),Xdef(t,2),'-or','MarkerSize',5,'MarkerFaceColor','k');
+%     plot(Xdef(t,7),Xdef(t,8),'or','MarkerSize',5,'MarkerFaceColor','b');
+%     plot(Xdef(t,13),Xdef(t,14),'or','MarkerSize',5,'MarkerFaceColor','g');
+%     plot(Xdef(t,19),Xdef(t,20),'or','MarkerSize',5,'MarkerFaceColor','y');
+%     pause(0.4)
 end
 
-conA = zeros(mpc.nx*mpc.duration,mpc.nx*mpc.duration);
-conA(1:mpc.nx,1:mpc.nx) = A_kron;
-for k=1:mpc.duration-1
-  conA(k*mpc.nx+1:(k+1)*mpc.nx,1:mpc.nx) = A_kron * conA((k-1)*mpc.nx+1:k*mpc.nx,1:mpc.nx);
-end
