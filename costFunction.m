@@ -15,8 +15,15 @@ if norm_U > 0
     u_bar = u_bar/norm_U;
 end
 
-cost = sum(diag(x_bar'*mpc.Q*x_bar)) ...
-      + sum(diag(u_bar'*mpc.P*u_bar));
+[l_s, l_sp, collision_bin] = getDistObs(X, mpc);
+D = l_s.*repmat(collision_bin,1,mpc.predictionHorizon);
+D(D == 0) = 1;
+D = D.^-1;
+D(D == 1) = 0;
+
+cost = sum(diag(x_bar'*mpc.Q*x_bar)) ...  % traj deviation cost
+      + sum(diag(u_bar'*mpc.P*u_bar)) ... %input cost
+      + mpc.obs_weight*sum(sum(D,2)); %obstacle avoidance cost
   
 J = cost + ...
     ((X(:,end) - mpc.x_d(:,mpc.current + mpc.predictionHorizon - 1))/norm(x_bar))' * mpc.Qn * ...
