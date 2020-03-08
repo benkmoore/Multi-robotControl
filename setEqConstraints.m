@@ -18,11 +18,3 @@ for k=1:mpc.predictionHorizon-1
   b_tilde(k*mpc.nx+1:(k+1)*mpc.nx,:) = A_kron * b_tilde((k-1)*mpc.nx+1:k*mpc.nx,:);
 end
 end
-
-
-
-
-% 
-% state_update = zeros(size(conA,1)+size(conB,1), size(conA,2)+size(conB,2));
-% state_update(1:size(conA,1),1:size(conA,2)) = conA;
-% state_update(size(conA,1)+1:end,size(conA,2)+1:end) = conB;
