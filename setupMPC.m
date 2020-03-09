@@ -16,7 +16,7 @@ mpc.predictionHorizon = 5;
 mpc.paddedDuration = mpc.duration + mpc.predictionHorizon;
 mpc.dt = 1;
 mpc.totalDuration = mpc.duration * mpc.dt;
-[mpc.x_d, x_r, y_r] = getDesiredReference(mpc,0,1);
+[mpc.x_d, x_r, y_r] = getDesiredReference(mpc,0,2);
 mpc.obstacles = setObstacles();
 
 % Define dynamics and cost function
