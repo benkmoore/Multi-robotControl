@@ -5,5 +5,6 @@ function z = mpcDecision(mpc, x_prev, u_prev)
     [zLB, zUB] = setBounds(mpc);
     options = optimoptions('fmincon','Algorithm','interior-point','Display','none');
     CostFcn = @(z) mpc.costFct(z(:), mpc);
-    [z, cost, ExitFlag] = fmincon(CostFcn, z0, [], [], mpc.A, mpc.B * x_prev, zLB, zUB, [], options);
+    nonlCon = @(z) mpc.nonlCon(z(:), mpc);
+    [z, cost, ExitFlag] = fmincon(CostFcn, z0, [], [], mpc.A, mpc.B * x_prev, zLB, zUB, nonlCon, options);
 end

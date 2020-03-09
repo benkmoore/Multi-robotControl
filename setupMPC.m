@@ -10,14 +10,15 @@ nu = 3 * N;
 mpc.N = N;
 mpc.nx = nx;
 mpc.nu = nu;
-mpc.duration = 30;
-mpc.controlHorizon = 5;
+mpc.duration = 50;
+mpc.controlHorizon = 2;
 mpc.predictionHorizon = 5;
 mpc.paddedDuration = mpc.duration + mpc.predictionHorizon;
 mpc.dt = 1;
 mpc.totalDuration = mpc.duration * mpc.dt;
-[mpc.x_d, x_r, y_r] = getDesiredReference(mpc,0,1);
+[mpc.x_d, x_r, y_r] = getDesiredReference(mpc,0,2);
 mpc.obstacles = setObstacles();
+mpc.threshold = 0.1; % distance to keep from obstacles
 
 % Define dynamics and cost function
 A = [1 mpc.dt;
@@ -28,13 +29,14 @@ A_kron = kron(eye(N, N), kron(A, eye(3, 3)));
 B_kron = kron(eye(N, N), kron(B, eye(3, 3)));
 mpc.stateFct = @(x,u) A_kron * x + B_kron * u;
 mpc.costFct = @costFunction;
+mpc.nonlCon = @nonlcon;
 [z2uMap, u2zMap] = mapControls(mpc);
 mpc.z2uMap = z2uMap; mpc.u2zMap = u2zMap;
 
 % Values to tweak
 mpc.l_d = 2;
 mpc.l_m = 1.75;
-mpc.obs_weight = 10; % cost of obs avoidance in cost fct
+mpc.obs_weight = 0; % cost of obs avoidance in cost fct
 mpc.u_weight = 10^3;
 mpc.x_weight = 10^1;
 mpc.boundX_ub = repmat([Inf,Inf,Inf,10,10,10]', mpc.N, 1);
@@ -43,11 +45,11 @@ mpc.boundX_lb = - mpc.boundX_ub;
 mpc.boundU_lb = - mpc.boundU_ub;
 
 % Cost on states
-mpc.Q = kron(eye(N, N), diag([1, 1, 1, 0, 0, 0])) * mpc.x_weight;
+mpc.Q = sparse(kron(eye(N, N), diag([1, 1, 1, 0, 0, 0])) * mpc.x_weight);
 %mpc.Q = A_kron'*A_kron;
-mpc.Qn = kron(eye(N ,N), diag([10, 10, 10, 10, 10, 10])) * mpc.x_weight;
+mpc.Qn = sparse(kron(eye(N ,N), diag([10, 10, 10, 10, 10, 10])) * 10);
 % Cost on input
-mpc.P = kron(eye(3,3), eye(N, N))*mpc.u_weight;
+mpc.P = sparse(kron(eye(3,3), eye(N, N))*mpc.u_weight);
 
 % Initialize all states
 mpc.x0 = mpc.x_d(:,1);
