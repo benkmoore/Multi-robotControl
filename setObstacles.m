@@ -8,4 +8,8 @@ function obstacles = setObstacles()
     z_obs2 = 1;
     r_obs2 = 0.2;
     obstacles = [[x_obs1, y_obs1, z_obs1, r_obs1]',[x_obs2, y_obs2, z_obs2, r_obs2]'];
+    obstacles = [10 * rand(1,5);
+                3 * rand(1,5);
+                 zeros(1,5);
+                0.5 * rand(1,5)];
 end
