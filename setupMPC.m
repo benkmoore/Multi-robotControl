@@ -19,6 +19,8 @@ mpc.totalDuration = mpc.duration * mpc.dt;
 [mpc.x_d, x_r, y_r] = getDesiredReference(mpc,0,2);
 mpc.obstacles = setObstacles();
 
+[mpc.C0, mpc.d0] = getObsPolyhedrons(mpc);
+
 % Define dynamics and cost function
 A = [1 mpc.dt;
     0 1];
@@ -61,6 +63,8 @@ Xdef = [x']; Udef = [u'];
 fprintf('iter: %g \n',i)
 for t = 1:mpc.duration
     fprintf('%g \n',t)
+    [mpc.Ac, mpc.bc] = getFeasibleSpace(mpc, x);
+    mpc.g = solveForGs(mpc);
     z = mpcDecision(mpc, x, u);
     [X, U] = getDecisions(z, mpc);
     x = X(1,:)';
