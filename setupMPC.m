@@ -57,6 +57,61 @@ mpc.u0 = zeros(mpc.nu, 1);
 mpc.current = 2;
 
 [mpc.A, mpc.B] = setEqConstraints(mpc, A_kron, B_kron);
+num_obs = 2;
+x_r = mpc.x_d(1:6,mpc.current:mpc.current + mpc.predictionHorizon - 1);
+p0 = mpc.x0(1:6);
+u0 = mpc.u0(1:3);
+% Cost on states
+Q = diag([1, 1, 1, 0, 0, 0]) * mpc.x_weight;
+% Cost on input
+P = eye(3,3)*mpc.u_weight;
+A = kron(A, eye(3, 3));
+B = kron(B, eye(3, 3));
+uBound = [2;2;2];
+prep = (reshape(mpc.obstacles(1:2,:)',num_obs,2));
+
+cvx_begin
+variables p(6,mpc.predictionHorizon) u(3,mpc.predictionHorizon)
+
+subject to
+    x_bar = p - x_r;
+    p(:,2:end) == A * p(:,1:end-1) + B * u(:,1:end-1)
+    p(:,1) == p0;
+    u(:,1) == u0;
+    abs(u(:,2:end) - u(:,1:end-1))- repmat(uBound,1,mpc.predictionHorizon-1)  <= 0
+    
+    p(:,end) == mpc.x_d(1:6,mpc.current + mpc.predictionHorizon - 1);
+    for t = 1:mpc.predictionHorizon
+        for j = 1:num_obs
+            g = []
+            cvx_begin
+            variables w(2,1)
+                minimize (prep(j,:) - p(1:2,t)') * w
+                subject to
+                    mpc.C0(:,1 + 2*(j-1):2 + 2*(j-1))  * w <= mpc.d0
+            cvx_end
+            g = [g;w];
+        end
+        (prep - (p(1:2,t)*ones(1,2))') * p(1:2,t) <= diag((prep - p(1:2,t)) * mpc.obstacles(1:2,:)) + g(t) - (prep - p(1:2,t))
+    end
+    minimize sum(diag(x_bar'*Q*x_bar)) ...
+     + sum(diag(u'*P*u));
+cvx_end
+
+
+
+
+%%
+
+
+
+
+
+
+
+
+
+
 
 x = mpc.x0; u = mpc.u0;
 Xdef = [x']; Udef = [u'];

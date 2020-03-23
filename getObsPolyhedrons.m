@@ -21,9 +21,8 @@ function [C, d] = getObsPolyhedrons(mpc)
         d(:,i) = [ (q_up - q0)*q_up' ;  % each d0 4 x 1
                   (q_low - q0)*q_low';
                   (q_r - q0)*q_r';
-                  (q_l - q0)*q_l' ];
+                  (q0 - q_l)*q_l' ];
         
     end
-
 end
 
