@@ -1,0 +1,13 @@
+function [c, ceq] = nonlcon(z, mpc)
+    [X, ~] = getDecisions(z, mpc);
+    p_robots_x = X(:,1:6:end);
+    p_robots_y = X(:,2:6:end);
+    p_robots_z = X(:,3:6:end);
+    c = []; gradc = [];
+    ceq = []; gradceq = [];
+    for i = 1 : size(mpc.obstacles,2)
+        paddedObstacles = repmat([mpc.obstacles(1,i),mpc.obstacles(2,i),mpc.obstacles(3,i)],mpc.predictionHorizon,mpc.N);
+        
+        c = [c;-vecnorm(X - paddedObstacles,2) + (mpc.obstacles(4,i) +  mpc.threshold) * ones(mpc.predictionHorizon, 1)];
+    end    
+end
