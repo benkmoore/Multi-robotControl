@@ -14,7 +14,7 @@ tic
 mpc.N = N;
 mpc.nx = nx;
 mpc.nu = nu;
-mpc.duration = 30;
+mpc.duration = 40;
 mpc.controlHorizon = 5;
 mpc.predictionHorizon = 5;
 mpc.paddedDuration = mpc.duration + mpc.predictionHorizon;
