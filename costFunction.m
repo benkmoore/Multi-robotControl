@@ -25,7 +25,6 @@ u_bar = U;
 cost = sum(diag(x_bar'*mpc.Q*x_bar)) ... % ...  % traj deviation cost
       + sum(diag(u_bar'*mpc.P*u_bar)) ... %input cost
       + (1/10^8)*sum(sum(-log(l_s))); %obstacle avoidance cost mpc.obs_weight*sum(sum(D,2));
-  
 J = cost + ...
     ((X(:,end) - mpc.x_d(:,mpc.current + mpc.predictionHorizon - 1)))' * mpc.Qn * ...
         ((X(:,end) - mpc.x_d(:,mpc.current + mpc.predictionHorizon - 1)));
