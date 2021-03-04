@@ -1,0 +1,16 @@
+function [outputArg1,outputArg2] = solveForGs(mpc)
+
+    num_obs = size(mpc.obstacles, 2);
+    
+    for k = 1 : mpc.predictionHorizon + 1 % loop over future times and current
+    for j = 1 : num_obs
+        cvx_begin quiet
+            varialbe w
+            minimize 
+            subject to
+                mpc.C0(:,(j-1)*2 + 1: j*2)*w <= mpc.d0(:,j);
+        cvx_end
+        g(k,j) = cvx_optval;
+
+end
+
